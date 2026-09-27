@@ -1,0 +1,76 @@
+{
+  "camera": {
+    "index": 0,
+    "width": 1280,
+    "height": 720,
+    "rotate": 0,
+    "mirror": false,
+    "model": "yolo11n-pose.pt",
+    "confidence": 0.5
+  },
+  "gaze": {
+    "camera_hfov_deg": 78,
+    "camera_vfov_deg": 46,
+    "tilt_offset_deg": 6,
+    "pan_range_deg": 60,
+    "tilt_range_deg": 25,
+    "invert_pan": false,
+    "invert_tilt": false,
+    "idle_wander": true
+  },
+  "behavior": {
+    "start_armed": false,
+    "conversation": true,
+    "active_hours": [7, 19],
+    "min_height_frac": 0.30,
+    "require_face": true,
+    "present_s": 0.7,
+    "gone_after_s": 2.5,
+    "min_gap_s": 20,
+    "regreet_same_person_after_s": 900,
+    "max_greetings_per_hour": 60,
+    "max_conversation_turns": 4,
+    "listen_wait_s": 5,
+    "listen_max_s": 10,
+    "ambient_every_min": 0
+  },
+  "claude": {
+    "model": "claude-haiku-4-5-20251001",
+    "max_tokens": 150,
+    "persona_file": "persona.md",
+    "remember_last_lines": 12,
+    "allow_audio_tags": false
+  },
+  "voice": {
+    "voice_id": "KgUSWQPFmuiZ5ycRbnty",
+    "tts_model": "eleven_flash_v2_5",
+    "output_format": "pcm_22050",
+    "optimize_streaming_latency": 2,
+    "stability": 0.45,
+    "similarity_boost": 0.8,
+    "style": 0.35,
+    "output_device": "Headphones",
+    "volume": 1.0,
+    "jaw_floor_db": -42,
+    "jaw_ceiling_db": -12,
+    "jaw_attack": 0.6,
+    "jaw_release": 0.45,
+    "jaw_max_open": 100,
+    "jaw_delay_s": 0.0
+  },
+  "ears": {
+    "input_device": "PowerConf C200",
+    "stt_model": "scribe_v1",
+    "end_of_speech_silence_s": 0.9,
+    "speech_min_rms": 0.012
+  },
+  "hardware": {
+    "serial_port": "/dev/cu.usbmodem1101",
+    "baud": 115200,
+    "eye_color": [255, 32, 0]
+  },
+  "web": {
+    "port": 8090,
+    "token": ""
+  }
+}

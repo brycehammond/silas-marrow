@@ -1,0 +1,15 @@
+# secrets
+software/.env
+.env
+
+# python
+.venv/
+__pycache__/
+*.pyc
+
+# downloaded YOLO weights
+*.pt
+
+# OS / editor
+.DS_Store
+.vscode/
