@@ -38,8 +38,13 @@ A life-size skull by the office door that turns to look at people, roasts their 
 | `cad/skull_parts.scad` | Parametric source for every printed part |
 | `cad/stl/` | Ready-to-print STLs (default measurements) |
 | `cad/previews/` | Renders of the assembly and parts |
+| `docs/parts.md` | Full parts list with quantities and specs |
+| `docs/wiring.svg` | Wiring diagram |
+| `docs/assembly.md` | Step-by-step assembly guide with a screw table |
 
 ## 1. Parts
+
+The full list with quantities and specs is in [docs/parts.md](docs/parts.md). In short:
 
 **Already in your cart:** Evotech skull, Hosyond MG996R 4-pack, Miuzei MG90S 4-pack, HiLetgo PAM8403 amp (with knob), Gikfun 40 mm 4Ω speakers, capacitor kit, lazy susan bearings, servo extension cables, ALITOVE 5V 5A supply, WS2812 7-LED jewels, speaker grille cloth.
 
@@ -61,6 +66,7 @@ A life-size skull by the office door that turns to look at people, roasts their 
 Default measurements match the parts you ordered. **Before printing, measure your actual parts** and edit the values marked `(M)` at the top of `cad/skull_parts.scad`. Then re-export with:
 
 ```bash
+brew install --cask openscad@snapshot    # the stable cask is disabled in Homebrew
 openscad -D 'part="turntable"' -o stl/turntable.stl skull_parts.scad
 ```
 
@@ -71,7 +77,7 @@ openscad -D 'part="turntable"' -o stl/turntable.stl skull_parts.scad
 | `camera_cradle` | 1 | PLA | As exported, **supports on** under the shelf | Check `cam_w/h/d` against your Anker first |
 | `grille_frame` | 1 | PLA, black | Lip on the bed | Clamps the grille cloth in the camera window |
 | `turntable` | 1 | PETG preferred, 40% infill | Disc on the bed | Carries the whole head. Check `ls_size`, `ls_hole`. |
-| `horn_column` | 1 | PETG | Standing up | Couples the pan servo horn to the turntable |
+| `horn_column` | 1 | PETG | Standing up | Couples the pan servo horn to the turntable. Flat sides leave room for the wires. |
 | `cradle` | 1 | PETG, 40% infill | Platform on the bed (already flipped) | The skull sits on this. Jaw servo mounts to it. |
 | `pivot_spacer` | 1 | Any | Standing up | Goes on the M5 bolt |
 | `speaker_holder` | 1 | PLA | Ring on the bed | |
@@ -81,6 +87,10 @@ openscad -D 'part="turntable"' -o stl/turntable.stl skull_parts.scad
 | `pvc_socket` | 1 | PLA | Flange on the bed | Optional: mounts the base on a 2" PVC pipe column |
 
 ## 3. Wiring
+
+![Wiring diagram](docs/wiring.svg)
+
+The same connections as text:
 
 ```
                    ALITOVE 5V 5A ── screw adapter ──┬── + servo power rail
@@ -107,9 +117,12 @@ Rules that prevent 90% of problems:
 - **Common ground.** Arduino GND must connect to the servo supply's −. Otherwise the servos twitch randomly.
 - **Never power servos from the Arduino's 5V pin.** The ALITOVE powers servos and eyes.
 - **Keep the amp on its own USB charger.** Sharing the servo supply puts buzz in the voice.
-- Run the skull's wires (jaw servo, eyes, speaker) down through the foramen magnum (the big hole in the skull base), through the cradle's center hole, the turntable's cable holes and the lazy susan, and into the base. Leave a loose loop so the head can turn ±60°.
+- Run the skull's wires (jaw servo, eyes, speaker) down through the foramen magnum (the big hole in the skull base), through the cradle's center hole, the turntable's two cable openings beside the horn column, the lazy susan, and into the base. Leave a loose loop so the head can turn ±60°.
 
 ## 4. Assembly
+
+The full guide, with a screw table, pictures and a bench test to do first, is in
+[docs/assembly.md](docs/assembly.md). The short version:
 
 **Skull prep**
 
@@ -121,7 +134,7 @@ Rules that prevent 90% of problems:
 
 **Neck**
 
-6. Screw the pan servo's round disc horn to the bottom of the `horn_column` (radial slots fit most horns), then screw the column under the `turntable` with three countersunk M3s.
+6. Trim two opposite sides off the pan servo's round disc horn so it is 17 mm wide, the same as the flat-sided `horn_column`. Screw the horn to the bottom of the column with the flats lined up (radial slots fit most horns), then screw the column under the `turntable` with four countersunk M3s. The wires from the head pass down beside those flats.
 7. Screw the lazy susan's top plate to the turntable, and its bottom plate to the top of the `base_shell` (the diagonal slots fit most hole patterns).
 8. Hang the pan servo under the base top: shaft up into the horn, tabs screwed to the two bridges. Before pressing it onto the horn, center the servo (`python calibrate.py servos`, pick 1, press c) with the head facing forward.
 9. Mount the tilt servo in the +X upright with its body outside and the spline poking through.

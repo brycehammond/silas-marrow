@@ -46,6 +46,8 @@ j_spline_top = 28.5;  j_shaft_off = 6.0;  j_hole_L = 27.8;  j_pilot = 1.8;
 tt_d = 140;          // turntable disc diameter
 tt_t = 5;
 column_d = ls_hole - 4;
+column_w = 17;       // the column is flattened to this width so the cables pass either side
+col_screw_a = [22.5, 157.5, 202.5, 337.5];   // column screws: between the horn slots
 pivot_h = 45;        // tilt axis height above the turntable top
 up_t = 6;            // upright thickness
 up_w = 72;           // upright width (along Y), offset to cover the servo tabs
@@ -85,8 +87,25 @@ module diag_slots(r0, r1, w, h) {
     for (a = [45, 135, 225, 315]) rotate(a) translate([r0, 0, 0]) slot(r1 - r0, w, h);
 }
 
-module horn_slots(h) {     // radial slots that fit most disc horns
-    for (a = [0 : 45 : 315]) rotate(a) translate([5, 0, 0]) slot(6.5, 2.4, h);
+module horn_slots(h, angles = [0 : 45 : 315], len = 6.5) {   // radial slots that fit most disc horns
+    for (a = angles) rotate(a) translate([5, 0, 0]) slot(len, 2.4, h);
+}
+
+// Footprint shared by the horn column and the middle of the turntable: a round
+// column with two flats. The wires from the head run down past the flats,
+// inside the lazy susan's center opening.
+module column_profile(h) {
+    intersection() {
+        cylinder(d = column_d, h = h);
+        translate([-column_d/2, -column_w/2, 0]) cube([column_d, column_w, h]);
+    }
+}
+
+module cable_channels(h) {   // the two openings either side of the column
+    difference() {
+        cylinder(d = ls_hole, h = h);
+        translate([-ls_hole/2 - 1, -column_w/2, -1]) cube([ls_hole + 2, column_w, h + 2]);
+    }
 }
 
 // ===========================================================================
@@ -253,7 +272,7 @@ module turntable() {
         }
         // screwdriver hole for the horn screw + countersunk screws for the column
         translate([0, 0, -1]) cylinder(d = 6, h = tt_t + 2);
-        for (a = [0, 120, 240]) rotate(a) translate([9.5, 0, -1]) {
+        for (a = col_screw_a) rotate(a) translate([9.5, 0, -1]) {
             cylinder(d = 3.4, h = tt_t + 2);
             translate([0, 0, tt_t + 1 - 2]) cylinder(d1 = 3.4, d2 = 7, h = 2 + eps);
         }
@@ -263,20 +282,25 @@ module turntable() {
         translate([up_x - up_t/2, 0, tt_t + pivot_h]) servo_cutout_side(up_t);
         // pivot bolt hole in the -X upright
         translate([-up_x - up_t/2 - 1, 0, tt_t + pivot_h]) rotate([0, 90, 0]) cylinder(d = pivot_bolt, h = up_t + 2);
-        // cable holes
-        for (y = [-18, 18]) translate([0, y, -eps]) cylinder(d = 10, h = tt_t + 1);
+        // cable openings, in line with the flats of the horn column
+        translate([0, 0, -eps]) cable_channels(tt_t + 1);
     }
 }
 
 // horn column: screws under the turntable, reaches down through the lazy
 // susan to the pan servo's disc horn. Screw the horn on BEFORE fitting the servo.
+// Its sides are flat so the wires can pass. Trim the disc horn to the same
+// width (column_w), or it will block the way down.
 module horn_column() {
     difference() {
-        cylinder(d = column_d, h = col_len);
-        translate([0, 0, -eps]) horn_slots(8);
+        column_profile(col_len);
+        // full slots along the column, short ones on the diagonals so the flats stay solid
+        translate([0, 0, -eps]) horn_slots(8, [0, 180]);
+        translate([0, 0, -eps]) horn_slots(8, [45, 135, 225, 315], 3.6);
         translate([0, 0, -eps]) cylinder(d = 9, h = 3);           // spline hub clearance
         translate([0, 0, -1]) cylinder(d = 6, h = col_len + 2);    // screwdriver access
-        for (a = [0, 120, 240]) rotate(a) translate([9.5, 0, col_len - 10]) cylinder(d = s_pilot, h = 11);
+        // pilots stop above the horn slots
+        for (a = col_screw_a) rotate(a) translate([9.5, 0, col_len - 7]) cylinder(d = s_pilot, h = 8);
     }
 }
 
