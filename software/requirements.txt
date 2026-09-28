@@ -6,3 +6,4 @@ sounddevice>=0.4.6
 numpy>=1.26
 requests>=2.31
 python-dotenv>=1.0
+lap>=0.5.12

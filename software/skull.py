@@ -7,8 +7,10 @@ Silas Marrow, the talking skull of the Elephant Corral.
     python skull.py --show --no-skull       test vision + voice without the Arduino
     python skull.py --show                  full run with a preview window
     python skull.py                         headless (use the phone page)
+    python skull.py --virtual               on-screen 3D skull instead of the Arduino,
+                                            using this computer's camera, mic and speakers
 
-Control page: http://<mac-mini>.local:8090
+Control page: http://<mac-mini>.local:8090      3D skull: .../skull
 """
 
 from __future__ import annotations
@@ -16,23 +18,40 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import math
 import os
 import random
+import subprocess
 import threading
 import time
+import webbrowser
 from collections import deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlencode, urlparse
 
 import cv2
 from dotenv import load_dotenv
 
 from hardware import Skull
+from virtual import FirmwareSim
 from vision import Camera, Tracker, draw_overlay, head_to_look, pick_target
 
 HERE = Path(__file__).resolve().parent
+WEB = HERE / "web"
 log = logging.getLogger("skull")
+
+STATIC_TYPES = {
+    ".html": "text/html; charset=utf-8",
+    ".js": "text/javascript; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".json": "application/json",
+    ".txt": "text/plain; charset=utf-8",
+    ".glb": "model/gltf-binary",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+}
+CHROME = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
 
 EYES_OFF, EYES_IDLE, EYES_ALERT, EYES_TALK, EYES_LISTEN = range(5)
 
@@ -45,6 +64,39 @@ CANNED = [
 
 def load_config(path: Path) -> dict:
     return json.loads(path.read_text())
+
+
+def apply_virtual_overrides(cfg: dict):
+    """--virtual: lay the virtual.camera/ears/voice/gaze settings over the main ones."""
+    for section in ("camera", "ears", "voice", "gaze"):
+        cfg[section].update(cfg.get("virtual", {}).get(section, {}))
+
+
+def viewer_config(cfg: dict) -> dict:
+    v = cfg.get("virtual", {})
+    model = v.get("model") or ""
+    return {
+        "pan_range_deg": cfg["gaze"]["pan_range_deg"],
+        "tilt_range_deg": cfg["gaze"]["tilt_range_deg"],
+        "jaw_open_deg": v.get("jaw_open_deg", 24),
+        "invert_pan": v.get("invert_pan", False),
+        "invert_tilt": v.get("invert_tilt", False),
+        # A sculpted model in web/ replaces the built-in skull. None if there is none.
+        "model": model if model and (WEB / model).is_file() else None,
+        "camera_inset": v.get("camera_inset", True),
+    }
+
+
+def open_viewer(url: str):
+    """Open the 3D skull in its own window: Chrome app mode if we can, else a tab."""
+    try:
+        if CHROME.exists():
+            subprocess.Popen([str(CHROME), f"--app={url}"], stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL, start_new_session=True)
+            return
+    except OSError as e:
+        log.warning("Could not start Chrome (%s), using the default browser", e)
+    webbrowser.open(url)
 
 
 class Director:
@@ -74,10 +126,12 @@ class Director:
         self.last_ambient = time.monotonic()
         self.last_said = ""
         self.last_heard = ""
+        self.said_n = self.heard_n = 0      # lets the 3D page spot a repeated line
         self.events: deque[str] = deque(maxlen=60)
         self._eyes = None
         self._manual: deque[tuple[str, str]] = deque()
         self._cancel = threading.Event()
+        self._hush = threading.Event()      # stops a pretend (no voice) line
 
     # ---- helpers -------------------------------------------------------
     def event(self, msg: str):
@@ -92,11 +146,30 @@ class Director:
 
     def say(self, text: str) -> bool:
         self.last_said = text
+        self.said_n += 1
         self.event(f"SAY: {text}")
         if self.mouth is None:
-            time.sleep(min(6.0, 0.35 * len(text.split())))   # pretend to talk
-            return True
+            return self._pretend(text)
         return self.mouth.say(text)
+
+    def _pretend(self, text: str) -> bool:
+        """No voice: move the jaw for about as long as the line would take."""
+        self._hush.clear()
+        self.eyes(EYES_TALK)
+        t0 = time.monotonic()
+        length = min(6.0, 0.35 * len(text.split()))
+        try:
+            while (t := time.monotonic() - t0) < length:
+                if self._hush.is_set():
+                    return False
+                syllable = abs(math.sin(t * math.pi * 4.2))
+                phrase = 0.5 + 0.5 * math.sin(t * 1.9 + 1.0) ** 2
+                self.skull.jaw(100 * syllable * phrase)
+                time.sleep(0.02)
+            return True
+        finally:
+            self.skull.jaw(0)
+            self.eyes(EYES_ALERT)
 
     def person_here(self) -> bool:
         return time.monotonic() - self.last_seen < self.cfg["behavior"]["gone_after_s"]
@@ -111,6 +184,7 @@ class Director:
 
     def stop_talking(self):
         self._cancel.set()
+        self._hush.set()
         if self.mouth:
             self.mouth.stop()
 
@@ -210,6 +284,7 @@ class Director:
             if len(heard) < 2:
                 break
             self.last_heard = heard
+            self.heard_n += 1
             self.event(f"HEARD: {heard}")
             try:
                 line = self.brain.reply(heard)
@@ -328,6 +403,7 @@ PAGE = """<!doctype html>
  <button id="stop" onclick="act('stop')">Stop talking</button>
  <button onclick="act('home')">Center head</button>
  <button onclick="act('relax')">Relax servos</button>
+ <button style="grid-column:1/-1" onclick="window.open('/skull' + q())">3D skull</button>
 </div>
 <div class="card"><div class="row">
  <input id="say" type="text" placeholder="Make Silas say something..." onkeydown="if(event.key==='Enter')sayIt()">
@@ -370,7 +446,8 @@ setInterval(refresh, 1000); refresh();
 </script></body></html>"""
 
 
-def make_handler(director: Director, skull: Skull, token: str):
+def make_handler(director: Director, skull: Skull, token: str, sim: FirmwareSim,
+                 viewer_cfg: dict):
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *a):
             pass
@@ -393,17 +470,62 @@ def make_handler(director: Director, skull: Skull, token: str):
             self._send(json.dumps(obj).encode(), "application/json", code)
 
         def do_GET(self):
+            path = urlparse(self.path).path
+            if path.startswith("/web/"):
+                # Scripts and models only. No token: module imports cannot carry one.
+                return self._static(path[len("/web/"):])
             if not self._authed():
                 return self._json({"error": "bad token"}, 403)
-            path = urlparse(self.path).path
             if path == "/":
                 self._send(PAGE.encode(), "text/html; charset=utf-8")
+            elif path == "/skull":
+                self._static("skull.html")
             elif path == "/api/status":
                 self._json(director.status())
+            elif path == "/api/pose":
+                self._pose()
             elif path == "/stream":
                 self._stream()
             else:
                 self._json({"error": "not found"}, 404)
+
+        def _static(self, rel: str):
+            f = (WEB / unquote(rel)).resolve()
+            if (not f.is_relative_to(WEB) or not f.is_file()
+                    or f.suffix not in STATIC_TYPES):
+                return self._json({"error": "not found"}, 404)
+            self._send(f.read_bytes(), STATIC_TYPES[f.suffix])
+
+        def _pose(self):
+            """Server-sent events for the 3D skull: config once, then pose and status."""
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+
+            def send(event: str, obj):
+                self.wfile.write(f"event: {event}\ndata: {json.dumps(obj)}\n\n".encode())
+
+            try:
+                send("config", viewer_cfg)
+                pose = status = None
+                sent_at = 0.0
+                while True:
+                    now = time.monotonic()
+                    p = sim.snapshot()
+                    if p != pose or now - sent_at > 0.5:
+                        send("pose", p)
+                        pose, sent_at = p, now
+                    st = {"state": director.state, "armed": director.armed,
+                          "people": len(director.people),
+                          "said": director.last_said, "said_n": director.said_n,
+                          "heard": director.last_heard, "heard_n": director.heard_n}
+                    if st != status:
+                        send("status", st)
+                        status = st
+                    time.sleep(1 / 60)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
 
         def do_POST(self):
             if not self._authed():
@@ -471,6 +593,9 @@ def main():
     ap.add_argument("--config", default=str(HERE / "config.json"))
     ap.add_argument("--show", action="store_true", help="show a preview window")
     ap.add_argument("--no-skull", action="store_true", help="run without the Arduino")
+    ap.add_argument("--virtual", action="store_true",
+                    help="on-screen 3D skull instead of the Arduino, with this "
+                         "computer's camera, mic and speakers")
     ap.add_argument("--no-voice", action="store_true", help="print lines instead of speaking")
     ap.add_argument("--no-ai", action="store_true", help="use canned lines, no Claude calls")
     ap.add_argument("--list-cameras", action="store_true")
@@ -489,9 +614,14 @@ def main():
 
     load_dotenv(HERE / ".env")
     cfg = load_config(Path(args.config))
+    if args.virtual:
+        args.no_skull = True
+        apply_virtual_overrides(cfg)
 
+    sim = FirmwareSim()
+    sim.start()
     skull = Skull(cfg["hardware"]["serial_port"], cfg["hardware"]["baud"],
-                  dry_run=args.no_skull)
+                  dry_run=args.no_skull, sim=sim)
     skull.start()
 
     brain = None
@@ -519,11 +649,16 @@ def main():
     skull.eye_color(*cfg["hardware"].get("eye_color", [255, 32, 0]))
     threading.Thread(target=director.run, daemon=True, name="director").start()
 
+    token = cfg["web"].get("token", "")
     server = ThreadingHTTPServer(("0.0.0.0", cfg["web"]["port"]),
-                                 make_handler(director, skull, cfg["web"].get("token", "")))
+                                 make_handler(director, skull, token, sim,
+                                              viewer_config(cfg)))
     server.daemon_threads = True
     threading.Thread(target=server.serve_forever, daemon=True).start()
     director.event(f"Control page on port {cfg['web']['port']}")
+    if args.virtual and cfg.get("virtual", {}).get("open_window", True):
+        open_viewer(f"http://localhost:{cfg['web']['port']}/skull"
+                    + (f"?{urlencode({'t': token})}" if token else ""))
 
     c = cfg["camera"]
     camera = Camera(c["index"], c["width"], c["height"], c.get("rotate", 0),

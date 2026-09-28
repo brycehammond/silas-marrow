@@ -72,5 +72,26 @@
   "web": {
     "port": 8090,
     "token": ""
+  },
+  "virtual": {
+    "open_window": true,
+    "camera_inset": true,
+    "model": "skull.glb",
+    "jaw_open_deg": 24,
+    "invert_pan": false,
+    "invert_tilt": false,
+    "camera": {
+      "index": 0,
+      "mirror": false
+    },
+    "ears": {
+      "input_device": null
+    },
+    "voice": {
+      "output_device": null
+    },
+    "gaze": {
+      "tilt_offset_deg": 0
+    }
   }
 }

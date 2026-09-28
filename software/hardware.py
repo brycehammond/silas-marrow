@@ -11,6 +11,9 @@ Protocol (newline terminated, see firmware/skull_controller.ino):
     H                   home (center, jaw closed)
     X                   relax (detach servos)
     S                   status
+
+Every line is also handed to an optional FirmwareSim (virtual.py), which drives
+the on-screen 3D skull. With dry_run it is the only receiver.
 """
 
 from __future__ import annotations
@@ -26,13 +29,15 @@ log = logging.getLogger("skull.hw")
 
 class Skull:
     def __init__(self, port: str, baud: int = 115200, dry_run: bool = False,
-                 rate_hz: float = 50.0):
+                 rate_hz: float = 50.0, sim=None):
         self.port = port
         self.baud = baud
         self.dry_run = dry_run
+        self.sim = sim
         self.period = 1.0 / rate_hz
         self.connected = dry_run
-        self.status_line = "dry run" if dry_run else "disconnected"
+        self.status_line = (("virtual" if sim else "dry run") if dry_run
+                            else "disconnected")
 
         self._lock = threading.Lock()
         self._jaw = 0
@@ -106,8 +111,15 @@ class Skull:
                 self.status_line = "disconnected"
                 time.sleep(3)
 
-    def _pump(self, write):
+    def _pump(self, send):
         start = time.monotonic()
+        sim = self.sim
+
+        def write(line):
+            send(line)
+            if sim is not None:
+                sim.handle(line)
+
         with self._lock:
             pending, self._pending = self._pending, []
         for cmd in pending:
