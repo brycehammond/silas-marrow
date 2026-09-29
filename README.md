@@ -259,7 +259,7 @@ control page as usual.
 
 ## 9. Privacy and etiquette
 
-Camera frames are sent to Anthropic's API only at the moment of a greeting. Speech is sent to ElevenLabs only while the skull is listening. Nothing is saved to disk. The persona forbids comments on bodies, age, race and the like, and it has to admit it's an AI if someone sincerely asks. It's still worth putting a small sign by the door ("This skull sees and hears you. It's AI. It's Halloween.") and giving coworkers an easy way to opt out: the Disarm button.
+Camera frames are sent to Anthropic's API only at the moment of a greeting. Speech is sent to ElevenLabs only while the skull is listening. Nothing is saved to disk. The persona forbids comments on bodies, age, race and the like, and it has to admit it's an AI if someone sincerely asks.
 
 ## 10. Troubleshooting
 
