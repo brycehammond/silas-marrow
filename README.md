@@ -272,9 +272,7 @@ and you can disarm it from the control page as usual.
 
 ## 9. Privacy and etiquette
 
-Camera frames are sent to Anthropic's API only at the moment of a greeting. Speech is sent to ElevenLabs only while the skull is listening. Nothing is saved to disk.
-
-To avoid greeting the same person twice, the skull keeps a face signature (a list of numbers, not a picture) for each person it has greeted. This is worked out on the Mac and never sent anywhere. It is held in memory only, with no name attached, and is dropped after 4 hours or when the program stops. This is still face recognition, so tell the people who walk past, and check your workplace's rules and local law before you run it. `recognize_faces: false` turns it off. The persona forbids comments on bodies, age, race and the like, and it has to admit it's an AI if someone sincerely asks.
+Camera frames are sent to Anthropic's API only at the moment of a greeting. Speech is sent to ElevenLabs only while the skull is listening. Nothing is saved to disk. The persona forbids comments on bodies, age, race and the like, and it has to admit it's an AI if someone sincerely asks.
 
 ## 10. Troubleshooting
 
