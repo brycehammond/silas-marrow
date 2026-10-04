@@ -7,8 +7,9 @@ software/.env
 __pycache__/
 *.pyc
 
-# downloaded YOLO weights
+# downloaded YOLO weights and face models
 *.pt
+software/models/
 
 # OS / editor
 .DS_Store

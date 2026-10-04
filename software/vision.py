@@ -8,7 +8,9 @@ box when the face is not visible.
 
 from __future__ import annotations
 
+import json
 import logging
+import subprocess
 import threading
 import time
 from dataclasses import dataclass
@@ -24,6 +26,31 @@ ROTATIONS = {90: cv2.ROTATE_90_CLOCKWISE, 180: cv2.ROTATE_180,
              270: cv2.ROTATE_90_COUNTERCLOCKWISE}
 
 
+def camera_names() -> list[str]:
+    """Camera names in OpenCV's index order (macOS). OpenCV sorts the devices by
+    unique ID, so a phone used as a Continuity Camera can take index 0."""
+    try:
+        out = subprocess.run(["system_profiler", "SPCameraDataType", "-json"],
+                             capture_output=True, text=True, timeout=10).stdout
+        cams = json.loads(out).get("SPCameraDataType", [])
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return []
+    cams.sort(key=lambda c: c.get("spcamera_unique-id", ""))
+    return [c.get("_name", "") for c in cams]
+
+
+def camera_index(name: str, fallback: int) -> int:
+    """Index of the first camera whose name contains `name`, else `fallback`."""
+    if not name:
+        return fallback
+    names = camera_names()
+    for i, n in enumerate(names):
+        if name.lower() in n.lower():
+            return i
+    log.warning("No camera matching %r (found %s), using index %d", name, names, fallback)
+    return fallback
+
+
 @dataclass
 class Person:
     track_id: int
@@ -37,8 +64,9 @@ class Camera:
     """Grabs frames on its own thread so inference always sees the newest one."""
 
     def __init__(self, index: int, width: int, height: int, rotate: int = 0,
-                 mirror: bool = False):
+                 mirror: bool = False, name: str = ""):
         self.index, self.width, self.height = index, width, height
+        self.name = name                      # if set, picks the index by camera name
         self.rotate, self.mirror = rotate, mirror
         self._frame = None
         self._lock = threading.Lock()
@@ -46,7 +74,7 @@ class Camera:
         self.fps = 0.0
 
     def _open(self):
-        cap = cv2.VideoCapture(self.index, cv2.CAP_AVFOUNDATION)
+        cap = cv2.VideoCapture(camera_index(self.name, self.index), cv2.CAP_AVFOUNDATION)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
         return cap

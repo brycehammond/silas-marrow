@@ -15,7 +15,7 @@ const withToken = path => path + (token ? '?t=' + encodeURIComponent(token) : ''
 const $ = id => document.getElementById(id);
 
 const cfg = { pan_range_deg: 60, tilt_range_deg: 25, jaw_open_deg: 24,
-              invert_pan: false, invert_tilt: false, model: null, camera_inset: true };
+              invert_pan: false, invert_tilt: false, model: null, camera_inset: true, subtitles: true };
 const pose = { pan: 0, tilt: 0, jaw: 0, eye_mode: 1, eye_rgb: [255, 32, 0], servos: true };
 
 // ------------------------------------------------------------------- scene
@@ -227,6 +227,7 @@ const ui = { chip: $('chip'), state: $('state'), line: $('line'), cam: $('cam'),
 let lineTimer = 0, status = {};
 
 function showLine(text, heard) {
+  if (!cfg.subtitles) return;
   if (!text) return;
   ui.line.textContent = heard ? '“' + text + '”' : text;
   ui.line.classList.toggle('heard', !!heard);

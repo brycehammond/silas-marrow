@@ -28,6 +28,7 @@ A life-size skull by the office door that turns to look at people, roasts their 
 | `software/brain.py` | Claude prompts (greeting, conversation) |
 | `software/voice.py` | ElevenLabs speech out with jaw sync, speech in |
 | `software/vision.py` | Camera thread, YOLO pose tracking, gaze math |
+| `software/faces.py` | Short-term face memory, so nobody is greeted twice |
 | `software/hardware.py` | Serial link to the Arduino |
 | `software/virtual.py` | Software twin of the Arduino sketch, for the on-screen skull |
 | `software/web/` | The on-screen 3D skull (three.js) |
@@ -232,8 +233,10 @@ and you can disarm it from the control page as usual.
 - **Devices.** With `--virtual`, the `camera`, `ears`, `voice` and `gaze` values inside
   the `virtual` section of `config.json` replace the main ones. `null` for a device means
   the system default, which is normally the built-in microphone and speakers. The Mac
-  mini settings are left alone. Run `--list-cameras` if camera 0 is not the built-in one
-  (an iPhone nearby can take that slot).
+  mini settings are left alone. The virtual camera is picked by name
+  (`virtual.camera.name`, "MacBook Pro Camera"), because an iPhone nearby can take
+  index 0. `--list-cameras` shows each camera's index and name. Change the name if your
+  Mac's camera is called something else. With no match it falls back to `index`.
 - **Permissions.** macOS asks for Camera and Microphone access for the terminal you
   run it from.
 - **Window.** It opens in Google Chrome's app mode if Chrome is installed, otherwise in
@@ -255,7 +258,7 @@ and you can disarm it from the control page as usual.
   (in Blender: face it toward -Y, leave the jaw unrotated, and export glTF with +Y up).
   Any size works. Restart `skull.py` after adding the file.
 
-**How it behaves.** When an armed skull sees a face close enough (`min_height_frac`) for `present_s`, it greets that person once, waits at least `min_gap_s` between greetings, and won't re-greet the same tracked person for 15 minutes. With conversation on, it listens for up to 5 seconds after each line and keeps talking for up to 4 turns, or until the person walks away. It only runs during `active_hours` (7am to 7pm by default), and `ambient_every_min` can make it mutter to itself when the hall is empty (off by default).
+**How it behaves.** When an armed skull sees a face close enough (`min_height_frac`) for `present_s`, it greets that person once and waits at least `min_gap_s` between greetings. It remembers each face it has greeted and leaves that person alone for 4 hours (`regreet_same_person_after_s`), even if they leave and come back. The exception: someone already greeted who stops and looks at it for 10 seconds (`linger_s`) gets another line, at most once every 5 minutes (`linger_gap_s`). It needs about a second of clear, front-on view before it greets, so it can tell who it is looking at. Set `greet_unrecognized` to `true` to greet people whose face it can't make out, or `recognize_faces` to `false` to go back to tracking alone. With conversation on, it listens for up to 5 seconds after each line and keeps talking for up to 4 turns, or until the person walks away. It only runs during `active_hours` (7am to 7pm by default), and `ambient_every_min` can make it mutter to itself when the hall is empty (off by default).
 
 **Keep it running.** Use `caffeinate -dimsu &`, or a launchd job like the one in the spider README.
 
@@ -269,7 +272,9 @@ and you can disarm it from the control page as usual.
 
 ## 9. Privacy and etiquette
 
-Camera frames are sent to Anthropic's API only at the moment of a greeting. Speech is sent to ElevenLabs only while the skull is listening. Nothing is saved to disk. The persona forbids comments on bodies, age, race and the like, and it has to admit it's an AI if someone sincerely asks.
+Camera frames are sent to Anthropic's API only at the moment of a greeting. Speech is sent to ElevenLabs only while the skull is listening. Nothing is saved to disk.
+
+To avoid greeting the same person twice, the skull keeps a face signature (a list of numbers, not a picture) for each person it has greeted. This is worked out on the Mac and never sent anywhere. It is held in memory only, with no name attached, and is dropped after 4 hours or when the program stops. This is still face recognition, so tell the people who walk past, and check your workplace's rules and local law before you run it. `recognize_faces: false` turns it off. The persona forbids comments on bodies, age, race and the like, and it has to admit it's an AI if someone sincerely asks.
 
 ## 10. Troubleshooting
 
@@ -281,7 +286,8 @@ Camera frames are sent to Anthropic's API only at the moment of a greeting. Spee
 | Voice buzzes or hums | Amp on its own USB charger. Add the cap. Try a ground loop isolator. |
 | `ElevenLabs TTS 401/403` | The key is wrong, or the voice isn't added to your account |
 | PCM refused | The code falls back to MP3 automatically (needs `brew install ffmpeg`) |
-| It greets the same person over and over | Raise `regreet_same_person_after_s` and `min_gap_s` |
-| It never greets | Check that it's armed, inside active hours, and that `min_height_frac` isn't too high for your hallway |
+| It greets the same person over and over | Lower `face_match_threshold` a little (0.30) so faces match more easily, and raise `linger_gap_s` |
+| It ignores a new person | Raise `face_match_threshold` (0.45). It may be taking them for someone it already greeted. |
+| It never greets | Check that it's armed, inside active hours, and that `min_height_frac` isn't too high for your hallway. It also waits for a clear, front-on face unless `greet_unrecognized` is `true`. |
 | Virtual skull page says "offline" | `skull.py` is not running, or the `?t=` token is missing from the URL |
 | Virtual skull hears nothing | Microphone access for the terminal, and `virtual.ears.input_device` (`null` = system default) |

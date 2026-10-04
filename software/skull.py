@@ -35,7 +35,8 @@ from dotenv import load_dotenv
 
 from hardware import Skull
 from virtual import FirmwareSim
-from vision import Camera, Tracker, draw_overlay, head_to_look, pick_target
+from faces import MAX_SAMPLES, FaceMemory
+from vision import Camera, Tracker, camera_names, draw_overlay, head_to_look, pick_target
 
 HERE = Path(__file__).resolve().parent
 WEB = HERE / "web"
@@ -61,6 +62,10 @@ CANNED = [
     "Welcome, stranger. The faro table is closed, but the coffee is just as dangerous.",
 ]
 
+LINGER_NOTE = ("You already greeted this person earlier today. They have stopped and are "
+               "looking at you again, so do not welcome them as a newcomer. Needle them "
+               "for coming back.")
+
 
 def load_config(path: Path) -> dict:
     return json.loads(path.read_text())
@@ -84,6 +89,7 @@ def viewer_config(cfg: dict) -> dict:
         # A sculpted model in web/ replaces the built-in skull. None if there is none.
         "model": model if model and (WEB / model).is_file() else None,
         "camera_inset": v.get("camera_inset", True),
+        "subtitles": v.get("subtitles", True),
     }
 
 
@@ -102,9 +108,12 @@ def open_viewer(url: str):
 class Director:
     """Owns the skull's behavior: who to look at, when to talk, when to listen."""
 
-    def __init__(self, cfg: dict, skull: Skull, brain, mouth, ears):
+    def __init__(self, cfg: dict, skull: Skull, brain, mouth, ears, faces=None):
         self.cfg = cfg
         self.skull, self.brain, self.mouth, self.ears = skull, brain, mouth, ears
+        self.faces = faces                  # FaceMemory, or None to go by track ID alone
+        self._face_try = 0.0
+        self._watch = None                  # what the face memory knows about the target
         b = cfg["behavior"]
         self.armed = b.get("start_armed", False)
         self.conversation = b.get("conversation", True) and ears is not None
@@ -221,14 +230,17 @@ class Director:
 
         target = self.target
         if (self.armed and target is not None and self.active_hours()
-                and target.track_id not in self.greeted_ids
                 and target.height_frac >= b["min_height_frac"]
                 and (target.face_visible or not b.get("require_face", True))
                 and now - self.target_since >= b["present_s"]
                 and now - self.last_greet >= b["min_gap_s"]
                 and len(self.greet_times) < b["max_greetings_per_hour"]):
-            self._encounter()
-            return
+            if self.faces:
+                if self._consider(target, now):
+                    return
+            elif target.track_id not in self.greeted_ids:
+                self._encounter()
+                return
 
         amb = b.get("ambient_every_min", 0)
         if (self.armed and amb and self.brain and self.active_hours()
@@ -240,7 +252,57 @@ class Director:
             self.say(self.brain.ambient())
             self.state = "idle"
 
-    def _encounter(self, forced: bool = False):
+    def _consider(self, target, now: float) -> bool:
+        """Greet the target unless their face was greeted lately. Someone already
+        greeted still gets a line if they stop and look at the skull for a while.
+        Returns True if it spoke."""
+        b = self.cfg["behavior"]
+        if now - self._face_try < 0.3:              # one look every 0.3 s is plenty
+            return False
+        self._face_try = now
+        w = self._watch
+        if w is None or w["id"] != target.track_id:
+            w = self._watch = {"id": target.track_id, "looks": [], "who": None,
+                               "since": None, "last": 0.0}
+        greeted = target.track_id in self.greeted_ids
+        emb = self.faces.look(self.frame, target.box)
+        if emb is None:
+            if now - w["last"] > 1.0:
+                w["since"] = None                   # they looked away
+            if b.get("greet_unrecognized", False) and not greeted:
+                self._encounter()
+                return True
+            return False
+        w["last"] = now
+        if w["since"] is None:
+            w["since"] = now
+
+        who = w["who"]
+        if who is not None and now - who["t"] > self.faces.window_s:
+            who = w["who"] = None                   # long enough ago: a stranger again
+            self.greeted_ids.pop(target.track_id, None)
+            greeted = False
+        if who is None:
+            who = w["who"] = self.faces.find(emb, now)
+            if who is None:
+                w["looks"] = (w["looks"] + [emb])[-MAX_SAMPLES:]
+                if len(w["looks"]) >= b.get("face_looks", 3) and not greeted:
+                    self._encounter(looks=w["looks"])
+                    return True
+                return False
+            if not greeted:
+                self.greeted_ids[target.track_id] = who["t"]
+                self.event(f"Person #{target.track_id} was greeted "
+                           f"{(now - who['t']) / 60:.0f} min ago, staying quiet")
+
+        linger = b.get("linger_s", 10)
+        if (linger and now - w["since"] >= linger
+                and now - who["t"] >= b.get("linger_gap_s", 300)):
+            self._encounter(looks=[emb], note=LINGER_NOTE)
+            return True
+        return False
+
+    def _encounter(self, forced: bool = False, looks=None, note: str = ""):
         b = self.cfg["behavior"]
         target, frame = self.target, self.frame
         if frame is None:
@@ -248,20 +310,33 @@ class Director:
         now = time.monotonic()
         self.last_greet = now
         self.greet_times.append(now)
+        self._watch = None
+        person = None
         if target is not None:
             self.greeted_ids[target.track_id] = now
+            if self.faces and not looks:            # a manual greeting counts too
+                emb = self.faces.look(frame, target.box)
+                looks = [emb] if emb is not None else []
+        if self.faces and looks:
+            person = self.faces.remember(looks, now)
 
         self.state = "thinking"
         self.eyes(EYES_ALERT)
         self.event("Greeting " + (f"person #{target.track_id}" if target else "(manual)"))
         try:
-            line = self.brain.greet(frame) if self.brain else random.choice(CANNED)
+            line = self.brain.greet(frame, note) if self.brain else random.choice(CANNED)
         except Exception as e:
             self.event(f"Claude error: {e}")
             line = random.choice(CANNED)
 
         self.state = "speaking"
-        if not self.say(line) or self._cancel.is_set():
+        spoke = self.say(line)
+        if person is not None and self.target is not None and target is not None \
+                and self.target.track_id == target.track_id:
+            emb = self.faces.look(self.frame, self.target.box)      # a second sample,
+            if emb is not None:                                     # now they are facing us
+                self.faces.add(person, emb)
+        if not spoke or self._cancel.is_set():
             return
 
         if not (self.conversation and self.ears and self.brain):
@@ -580,11 +655,13 @@ def make_handler(director: Director, skull: Skull, token: str, sim: FirmwareSim,
 # --------------------------------------------------------------------------
 
 def list_cameras():
+    names = camera_names()
     for i in range(6):
         cap = cv2.VideoCapture(i, cv2.CAP_AVFOUNDATION)
         ok, frame = cap.read()
         if ok:
-            print(f"camera {i}: {frame.shape[1]}x{frame.shape[0]}")
+            name = f"  {names[i]}" if i < len(names) else ""
+            print(f"camera {i}: {frame.shape[1]}x{frame.shape[0]}{name}")
         cap.release()
 
 
@@ -643,7 +720,15 @@ def main():
                           EYES_TALK if talking else EYES_ALERT))
         ears = Ears(key, cfg["ears"])
 
-    director = Director(cfg, skull, brain, mouth, ears)
+    faces = None
+    if cfg["behavior"].get("recognize_faces", True):
+        try:
+            faces = FaceMemory(HERE / "models", cfg["behavior"]["regreet_same_person_after_s"],
+                               cfg["behavior"].get("face_match_threshold", 0.363))
+        except Exception as e:
+            log.warning("Face memory is off (%s). Going by track ID alone.", e)
+
+    director = Director(cfg, skull, brain, mouth, ears, faces)
     if mouth:
         director_ref["d"] = director
     skull.eye_color(*cfg["hardware"].get("eye_color", [255, 32, 0]))
@@ -662,7 +747,7 @@ def main():
 
     c = cfg["camera"]
     camera = Camera(c["index"], c["width"], c["height"], c.get("rotate", 0),
-                    c.get("mirror", False))
+                    c.get("mirror", False), c.get("name", ""))
     camera.start()
     tracker = Tracker(c.get("model", "yolo11n-pose.pt"), c.get("confidence", 0.5))
 

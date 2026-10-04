@@ -27,7 +27,12 @@
     "present_s": 0.7,
     "gone_after_s": 2.5,
     "min_gap_s": 20,
-    "regreet_same_person_after_s": 900,
+    "regreet_same_person_after_s": 14400,
+    "recognize_faces": true,
+    "face_match_threshold": 0.363,
+    "greet_unrecognized": false,
+    "linger_s": 10,
+    "linger_gap_s": 300,
     "max_greetings_per_hour": 60,
     "max_conversation_turns": 4,
     "listen_wait_s": 5,
@@ -76,13 +81,15 @@
   },
   "virtual": {
     "open_window": true,
-    "camera_inset": true,
+    "camera_inset": false,
+    "subtitles": false,
     "model": "skull.glb",
     "jaw_open_deg": 24,
     "invert_pan": false,
     "invert_tilt": false,
     "camera": {
       "index": 0,
+      "name": "MacBook Pro Camera",
       "mirror": false
     },
     "ears": {
