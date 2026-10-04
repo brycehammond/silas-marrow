@@ -40,14 +40,14 @@ the capacitance.
 | Part | Qty | Used in this build | Job |
 |---|---|---|---|
 | Computer | 1 | Mac mini | Runs `skull.py` |
-| Webcam with microphone | 1 | Anker PowerConf C200, 92 x 32 x 38 mm | Sees and hears visitors |
+| Webcam with microphone | 1 | Anker PowerConf C200, 40.8 x 50.6 x 55.1 mm with the clip folded | Sees and hears visitors |
 
 ## Mechanical
 
 | Part | Qty | Spec | Job |
 |---|---|---|---|
 | Life-size plastic skull | 1 | Hinged jaw, removable cap. This build uses an Evotech skull. | Silas |
-| Lazy susan bearing | 1 | 3 in (76.2 mm) square plates, 8 mm tall, 30 mm center opening | Carries the head on the base |
+| Lazy susan bearing | 1 | Sold as 3 in. The plates measure 72 mm square, 9 mm tall, with a 35.3 mm center opening. | Carries the head on the base |
 | M3 screws | about 30 | 8 to 16 mm long | Self-tap into the printed pilot holes |
 | M5 bolt | 1 | 50 mm long | Idle tilt pivot |
 | M5 nylon lock nut | 1 | | Idle tilt pivot |

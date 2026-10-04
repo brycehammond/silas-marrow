@@ -91,7 +91,8 @@ The `horn_column` has two flat sides. The wires from the head run down past thos
 flats, so nothing may stick out beyond them.
 
 1. Trim two opposite sides off the pan servo's round disc horn until it is 17 mm wide,
-   the same as the column. Side cutters and a file will do it. An untrimmed horn blocks
+   the same as the column. The horn is 20.5 mm across, so that is a little under 2 mm
+   off each side. Side cutters and a file will do it. An untrimmed horn blocks
    the wires.
 2. Screw the horn to the bottom of the column, with its trimmed sides in line with the
    flats. The bottom is the end with the slots and the wide recess. The two slots that
@@ -185,7 +186,7 @@ overheating.
 1. Gather the jaw servo, eye and speaker wires. Feed them down through the hole in the
    cradle platform.
 2. Continue down through the two curved openings in the turntable, one either side of
-   the horn column. Each is about 6 mm deep and 24 mm wide, which takes a servo plug.
+   the horn column. Each is about 9 mm deep and 31 mm wide, which takes a servo plug.
    Split the wires between the two sides.
 3. Leave a loose loop above the turntable so the head can turn 60 degrees each way
    without pulling.
@@ -215,7 +216,7 @@ The first design had a fully round horn column that filled the bearing's center
 opening and left a gap of about 2 mm. The column now has two flat sides, and the
 turntable has an opening beside each one. A clearance test in OpenSCAD passes a servo
 plug straight down either side. Three things still depend on your parts: the bearing's
-opening must really be 30 mm, the horn must be trimmed, and the wires must not rub
+opening must really be 35.3 mm, the horn must be trimmed, and the wires must not rub
 hard on the column when the head turns.
 
 **2. The lazy susan has no listed fasteners.**
