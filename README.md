@@ -86,6 +86,16 @@ openscad -D 'part="turntable"' -o stl/turntable.stl skull_parts.scad
 | `eye_diffuser` | 2 | White or translucent PLA/PETG, 2 perimeters | Dome up | Frosts the LEDs into a glow |
 | `pvc_socket` | 1 | PLA | Flange on the bed | Optional: mounts the base on a 2" PVC pipe column |
 
+**Print order.** Start with the small parts that test your measurements, and leave the 12-hour `base_shell` for last:
+
+1. `camera_cradle`, `speaker_holder` and both `eye_holder`s. They are quick, and each one checks a measured part (the camera, the speaker, the LED jewel). Fix the `(M)` values and re-export if anything is off.
+2. Both `jaw_tab`s and both `eye_diffuser`s. With the eye holders, that is everything you need to prepare the skull, and the jaw tab's epoxy can cure while the big parts print.
+3. `base_floor`. Check the camera cradle screw holes and the Arduino standoffs against it.
+4. `grille_frame` and `pivot_spacer`, whenever they fit in. Batch the frame with the eye holders if you are swapping to black filament.
+5. `base_shell`. It depends on the servo and lazy susan measurements too (the pan servo mount and the bearing slots), so check those once more before you commit to it.
+
+The PETG neck parts (`turntable`, `horn_column`, `cradle`) are a separate batch. The neck cannot be assembled until they and the shell are done.
+
 ## 3. Wiring
 
 ![Wiring diagram](docs/wiring.svg)
