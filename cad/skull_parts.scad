@@ -18,7 +18,7 @@ base_w = 150;  base_d = 150;  base_h = 110;
 wall = 3;      top_t = 5;     corner_r = 8;
 floor_t = 4;
 
-// ---------------- lazy susan (3 in square) ----------------
+// ---------------- lazy susan (sold as 3 in, plates measure 72 mm) ----------------
 ls_size = 72;      // (M) plate size
 ls_h = 9;            // (M) total height of the bearing, plate to plate
 ls_hole = 35.3;        // (M) diameter of the lazy susan's center opening
