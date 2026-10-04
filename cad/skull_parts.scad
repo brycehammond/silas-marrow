@@ -19,28 +19,28 @@ wall = 3;      top_t = 5;     corner_r = 8;
 floor_t = 4;
 
 // ---------------- lazy susan (3 in square) ----------------
-ls_size = 76.2;      // (M) plate size
-ls_h = 8;            // (M) total height of the bearing, plate to plate
-ls_hole = 30;        // (M) diameter of the lazy susan's center opening
+ls_size = 72;      // (M) plate size
+ls_h = 9;            // (M) total height of the bearing, plate to plate
+ls_hole = 35.3;        // (M) diameter of the lazy susan's center opening
 ls_slot_r0 = 22;     // slots along the diagonals from r0 to r1 fit most hole patterns
 ls_slot_r1 = 50;
 
 // ---------------- MG996R (neck servos) ----------------
-s_L = 40.7;          // (M) body length
-s_W = 19.7;          // (M) body width
-s_tab_under = 26.6;  // (M) bottom of case to underside of the mounting tabs
-s_tab_t = 2.5;
-s_spline_top = 43.0; // (M) bottom of case to top of output spline
-s_shaft_off = 10.2;  // (M) end of case to shaft center
-s_hole_L = 49.5;     // (M) tab hole spacing along length
-s_hole_W = 10;       // (M) tab hole spacing across width
+s_L = 40;          // (M) body length
+s_W = 20;          // (M) body width
+s_tab_under = 32.2;  // (M) bottom of case to underside of the mounting tabs
+s_tab_t = 2.4;
+s_spline_top = 46.4; // (M) bottom of case to top of output spline
+s_shaft_off = 10.1;  // (M) end of case to shaft center
+s_hole_L = 49.2;     // (M) tab hole spacing along length
+s_hole_W = 18.4;       // (M) tab hole spacing across width
 s_pilot = 2.8;       // self-tapping M3 into plastic
-horn_d = 25;         // (M) round disc horn diameter
-horn_t = 3;          // (M) horn disc thickness above the spline
+horn_d = 20.5;         // (M) round disc horn diameter
+horn_t = 2.3;          // (M) horn disc thickness above the spline
 
 // ---------------- MG90S (jaw servo) ----------------
-j_L = 22.8;  j_W = 12.2;  j_tab_under = 15.9;  j_tab_t = 2.5;
-j_spline_top = 28.5;  j_shaft_off = 6.0;  j_hole_L = 27.8;  j_pilot = 1.8;
+j_L = 22.7;  j_W = 12.2;  j_tab_under = 17.8;  j_tab_t = 2.5;
+j_spline_top = 32.4;  j_shaft_off = 6.0;  j_hole_L = 30.9;  j_pilot = 1.8;
 
 // ---------------- neck geometry ----------------
 tt_d = 140;          // turntable disc diameter
@@ -60,9 +60,9 @@ horn_gap = 11;       // upright inner face to cradle arm (fits spline + horn)
 pivot_bolt = 5.3;    // M5 bolt for the idle side
 
 // ---------------- camera + window ----------------
-cam_w = 92;          // (M) Anker C200 width
-cam_h = 32;          // (M) height
-cam_d = 38;          // (M) depth front to back, clip folded
+cam_w = 40.8;          // (M) Anker C200 width
+cam_h = 50.6;          // (M) height
+cam_d = 55.1;          // (M) depth front to back, clip folded
 cam_tilt = 12;       // degrees upward
 win_w = 46;  win_h = 28;
 win_z = 48;          // window center height above the bottom of the base
@@ -346,7 +346,7 @@ module cradle() {
 // ===========================================================================
 // 7. speaker holder: 40 mm speaker facing forward under the jaw.
 // ===========================================================================
-spk_d = 40.5;   // (M)
+spk_d = 39.8;   // (M)
 module speaker_holder() {   // print ring-down; mount with the ear up
     difference() {
         union() {
@@ -378,7 +378,7 @@ module jaw_tab() {
 // ===========================================================================
 // 9. eye holder + diffuser: 7-LED jewel behind a frosted dome in each socket.
 // ===========================================================================
-jewel_d = 23.2;   // (M)
+jewel_d = 22.9;   // (M)
 module eye_holder() {
     difference() {
         cylinder(d = jewel_d + 5, h = 6);
