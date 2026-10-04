@@ -8,7 +8,7 @@ A life-size skull by the office door that turns to look at people, roasts their 
       ▼
  Mac mini ── skull.py ─────────────────────────────────────────────┐
    • YOLO pose tracking: where is the nearest face?                │
-   • Claude (Haiku 4.5): look at the frame, write a line            │
+   • Claude (Sonnet 5.5): look at the frame, write a line           │
    • ElevenLabs Flash TTS: speak it; audio level drives the jaw     │
    • ElevenLabs Scribe STT: hear the reply, keep the conversation   │
    • Phone control page on port 8090                                │
@@ -207,7 +207,7 @@ python skull.py                      # headless; use the phone page
 Open `http://<mac-mini-name>.local:8090` on your phone. The page has:
 
 - a live camera view
-- **Arm** (it starts disarmed) and **Conversation** toggles
+- **Arm** (it starts armed; set `start_armed` to `false` in `config.json` to change that) and **Conversation** toggles
 - **Greet now**, **Stop talking**, **Center head** and **Relax servos** buttons
 - a **Say** box, so you can puppet Silas live
 - volume and eye color controls
@@ -226,8 +226,8 @@ python skull.py --virtual --no-voice --no-ai     # no API keys needed
 
 `--virtual` replaces the Arduino with a 3D skull in its own window. Everything else is
 the real thing: it watches through this computer's camera, listens on its microphone,
-talks through its speakers, and greets and converses by the same rules. Arm it from the
-control page as usual.
+talks through its speakers, and greets and converses by the same rules. It starts armed,
+and you can disarm it from the control page as usual.
 
 - **Devices.** With `--virtual`, the `camera`, `ears`, `voice` and `gaze` values inside
   the `virtual` section of `config.json` replace the main ones. `null` for a device means
@@ -259,12 +259,12 @@ control page as usual.
 
 **Keep it running.** Use `caffeinate -dimsu &`, or a launchd job like the one in the spider README.
 
-**Costs (rough).** A greeting sends one downscaled frame plus the persona to Claude Haiku 4.5: about 2,000 input tokens, so a fraction of a cent. 100 greetings a day is around $0.25. ElevenLabs is the bigger cost. Each line is about 100 to 150 characters, and Flash models bill around half a credit per character, so check that your plan's monthly credits cover a busy month. `max_greetings_per_hour` is your cost cap.
+**Costs (rough).** A greeting sends one downscaled frame plus the persona to Claude Sonnet 5.5: about 2,000 input tokens. On Haiku 4.5 that came to around $0.25 for 100 greetings a day. Sonnet costs more, so check Anthropic's current pricing. ElevenLabs is the bigger cost. Each line is about 100 to 150 characters, and Flash models bill around half a credit per character, so check that your plan's monthly credits cover a busy month. `max_greetings_per_hour` is your cost cap.
 
 ## 8. Make it yours
 
 - **Personality and history:** edit `software/persona.md`. It is plain text, and the program re-reads it on start.
-- **Smarter replies:** set `claude.model` to `claude-sonnet-5`. It's a bit slower and costs more.
+- **Cheaper replies:** set `claude.model` to `claude-haiku-4-5-20251001` and delete the `claude.thinking` line. Haiku rejects that setting. Sonnet 5.5 needs it: without `"thinking": "between_tools"` it spends the whole token budget thinking and returns an empty line.
 - **More expressive voice:** set `voice.tts_model` to `eleven_v3` and `claude.allow_audio_tags` to `true`. Silas can then `[chuckles]` and `[whispers]`, at the cost of more latency.
 
 ## 9. Privacy and etiquette

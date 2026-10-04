@@ -19,7 +19,7 @@
     "idle_wander": true
   },
   "behavior": {
-    "start_armed": false,
+    "start_armed": true,
     "conversation": true,
     "active_hours": [7, 19],
     "min_height_frac": 0.30,
@@ -35,8 +35,9 @@
     "ambient_every_min": 0
   },
   "claude": {
-    "model": "claude-haiku-4-5-20251001",
-    "max_tokens": 150,
+    "model": "claude-sonnet-5-5",
+    "thinking": "between_tools",
+    "max_tokens": 300,
     "persona_file": "persona.md",
     "remember_last_lines": 12,
     "allow_audio_tags": false

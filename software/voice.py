@@ -72,8 +72,9 @@ class Mouth:
     def _tts_stream(self, text: str, fmt: str):
         c = self.cfg
         url = f"{API}/text-to-speech/{c['voice_id']}/stream"
-        params = {"output_format": fmt,
-                  "optimize_streaming_latency": c.get("optimize_streaming_latency", 2)}
+        params = {"output_format": fmt}
+        if not c["tts_model"].startswith("eleven_v3"):    # v3 rejects this parameter
+            params["optimize_streaming_latency"] = c.get("optimize_streaming_latency", 2)
         body = {
             "text": text,
             "model_id": c["tts_model"],

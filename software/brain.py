@@ -61,11 +61,15 @@ class Brain:
         return self.persona + "\n\n## Right now\n\n" + "\n".join(extra)
 
     def _ask(self, messages: list[dict], max_tokens: int) -> str:
+        extra = {}
+        if self.cfg.get("thinking"):      # e.g. "between_tools" keeps Sonnet 5.5 from thinking first
+            extra["thinking"] = {"type": self.cfg["thinking"]}
         r = self.client.messages.create(
             model=self.cfg["model"],
             max_tokens=max_tokens,
             system=self._system(),
             messages=messages,
+            **extra,
         )
         text = "".join(b.text for b in r.content if b.type == "text")
         return clean_line(text, self.cfg.get("allow_audio_tags", False))
