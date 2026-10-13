@@ -11,10 +11,6 @@ The steps follow the README. The screw sizes, hole counts and clearances were wo
 from the hole sizes in `cad/skull_parts.scad`. Nothing here has been checked against a
 finished build yet, so read [Open questions](#open-questions) before you start.
 
-If you printed the `turntable` or `horn_column` before the cable path was fixed, print
-them again. The old ones have round cable holes and a fully round column, and the
-wires cannot get through.
-
 ![The assembled neck and base](../cad/previews/assembly_front.png)
 
 ## Words used in this guide
