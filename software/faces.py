@@ -86,6 +86,8 @@ class FaceMemory:
                         for s in p["samples"])
             if score > best:
                 best, who = score, p
+        log.debug("Best match %.3f of %d remembered (threshold %.3f)",
+                  best, len(self.people), self.threshold)
         if who is None or best < self.threshold:
             return None
         self.add(who, emb)                        # another look at them helps next time

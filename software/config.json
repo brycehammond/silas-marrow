@@ -29,7 +29,7 @@
     "min_gap_s": 20,
     "regreet_same_person_after_s": 14400,
     "recognize_faces": true,
-    "face_match_threshold": 0.363,
+    "face_match_threshold": 0.5,
     "greet_unrecognized": false,
     "linger_s": 10,
     "linger_gap_s": 300,
