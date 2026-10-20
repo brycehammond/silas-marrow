@@ -75,7 +75,7 @@ openscad -D 'part="turntable"' -o stl/turntable.stl skull_parts.scad
 |---|---|---|---|---|
 | `base_shell` | 1 | PLA, 3 walls, 15% infill | Top face on the bed (the STL is already flipped). No supports. | About 12 hr. Needs a 150 mm square bed area. |
 | `base_floor` | 1 | PLA | Flat | Arduino standoffs, amp pad, camera cradle screws |
-| `camera_cradle` | 1 | PLA | As exported, **supports on** under the shelf | Check `cam_w/h/d` against your Anker first |
+| `camera_cradle` | 1 | PLA | As exported, **supports on** under the shelf | Check `cam_w/h/d` and `cam_cord_z` against your Anker first |
 | `grille_frame` | 1 | PLA, black | Lip on the bed | Clamps the grille cloth in the camera window |
 | `turntable` | 1 | PETG preferred, 40% infill | Disc on the bed | Carries the whole head. Check `ls_size`, `ls_hole`. |
 | `horn_column` | 1 | PETG | Standing up | Couples the pan servo horn to the turntable. Flat sides leave room for the wires. |
@@ -158,7 +158,7 @@ The full guide, with a screw table, pictures and a bench test to do first, is in
 **Base**
 
 15. Screw the Arduino to the standoffs on the `base_floor`, stick the amp on its pad with foam tape, and screw the `camera_cradle` in behind the window.
-16. Strap the Anker into the cradle with zip ties. Its lens should sit right against the window.
+16. Strap the Anker into the cradle with zip ties, lens forward against the shelf's front lip. The shelf tilts back so the camera aims up 12 degrees at visitors' faces, and the lens ends up about 1 cm behind the window.
 17. Stretch grille cloth over the window and press the `grille_frame` in from outside to clamp it tight.
 18. Screw the floor to the shell. Optional: bolt on the `pvc_socket` and stand the whole thing on a 2" PVC pipe so the skull is at eye level.
 

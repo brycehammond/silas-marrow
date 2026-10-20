@@ -63,7 +63,9 @@ pivot_bolt = 5.3;    // M5 bolt for the idle side
 cam_w = 40.8;          // (M) Anker C200 width
 cam_h = 50.6;          // (M) height
 cam_d = 55.1;          // (M) depth front to back, clip folded
+cam_cord_z = 30;     // (M) USB-C plug center above the bottom of the folded clip (the cord leaves the back)
 cam_tilt = 12;       // degrees upward
+cam_shelf_y = -11;   // shelf front edge, forward of the cradle feet: puts the front lip 1 mm off the wall
 win_w = 46;  win_h = 28;
 win_z = 48;          // window center height above the bottom of the base
 
@@ -226,26 +228,27 @@ module base_floor() {
 // ===========================================================================
 module camera_cradle() {
     shelf_z = win_z - floor_t - cam_h/2;          // height of the shelf front edge
+    // The shelf tilts back about its front edge (negative X rotation), so the lens aims up.
     difference() {
         union() {
             // feet
             translate([-30, 0, 0]) cube([60, 14, 4]);
             // tilted shelf with back stop and front lip
-            translate([0, 2, shelf_z]) rotate([cam_tilt, 0, 0]) {
+            translate([0, cam_shelf_y, shelf_z]) rotate([-cam_tilt, 0, 0]) {
                 translate([-cam_w/2 - 3, -2, -3]) cube([cam_w + 6, cam_d + 5, 3]);   // runs under the front lip
-                translate([-cam_w/2 - 3, cam_d + tol, 0]) cube([cam_w + 6, 3, cam_h * 0.6]);
+                translate([-cam_w/2 - 3, cam_d + tol, 0]) cube([cam_w + 6, 3, cam_cord_z - 8]);   // back stop, stays under the plug
                 translate([-cam_w/2 - 3, -2, 0]) cube([cam_w + 6, 2, 2.5]);
             }
             // legs
             for (x = [-24, 24]) hull() {
                 translate([x - 3, 0, 0]) cube([6, 14, 4]);
-                translate([0, 2, shelf_z]) rotate([cam_tilt, 0, 0])
+                translate([0, cam_shelf_y, shelf_z]) rotate([-cam_tilt, 0, 0])
                     translate([x - 3, 2, -3]) cube([6, cam_d - 4, 1]);
             }
         }
         for (x = [-20, 20]) translate([x, 7, -eps]) cylinder(d = 2.8, h = 10);
         // zip tie slots through the shelf
-        translate([0, 2, shelf_z]) rotate([cam_tilt, 0, 0])
+        translate([0, cam_shelf_y, shelf_z]) rotate([-cam_tilt, 0, 0])
             for (x = [-cam_w/2 + 8, cam_w/2 - 8]) translate([x - 2.5, cam_d/2 - 5, -5]) cube([5, 3.5, 8]);
     }
 }

@@ -172,8 +172,9 @@ overheating.
 2. Stick the amp to the raised pad with double-sided foam tape.
 3. Screw the `camera_cradle` to the floor from underneath with two countersunk M3
    screws. It sits just behind the window.
-4. Strap the camera to the cradle shelf with zip ties through the two slots. The lens
-   should sit right against the window.
+4. Strap the camera to the cradle shelf with zip ties through the two slots, its front
+   against the shelf's front lip. The shelf tilts back so the camera aims up 12 degrees,
+   toward faces above the skull's base, and the lens sits about 1 cm behind the window.
 5. Stretch the grille cloth over the window from outside and press the `grille_frame`
    in to clamp it.
 
