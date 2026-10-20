@@ -69,6 +69,7 @@ win_z = 48;          // window center height above the bottom of the base
 
 // ---------------- electronics ----------------
 uno_holes = [[14, 2.5], [15.3, 50.7], [66.1, 7.6], [66.1, 35.5]];
+uno_w = 53.34;       // Uno board width (Y on the floor)
 pvc_od = 60.3;       // 2 in schedule 40 PVC pipe
 
 // ===========================================================================
@@ -87,8 +88,8 @@ module diag_slots(r0, r1, w, h) {
     for (a = [45, 135, 225, 315]) rotate(a) translate([r0, 0, 0]) slot(r1 - r0, w, h);
 }
 
-module horn_slots(h, angles = [0 : 45 : 315], len = 6.5) {   // radial slots that fit most disc horns
-    for (a = angles) rotate(a) translate([5, 0, 0]) slot(len, 2.4, h);
+module horn_slots(h, angles = [0 : 45 : 315], len = 6.5, r0 = 5) {   // radial slots that fit most disc horns
+    for (a = angles) rotate(a) translate([r0, 0, 0]) slot(len, 2.4, h);
 }
 
 // Footprint shared by the horn column and the middle of the turntable: a round
@@ -116,6 +117,24 @@ s_spline_z = z_hc - horn_t;
 s_tab_top_z = s_spline_z - (s_spline_top - s_tab_under - s_tab_t);
 s_center_x = s_L/2 - s_shaft_off;        // servo body center relative to shaft
 
+boss_h = 22;         // floor screw boss height
+boss_taper = 15;     // the boss grows out of the corner over this height, so it prints without supports
+
+// Floor screw boss in the +X +Y corner. It is fused into both walls and tapers
+// to nothing up the corner: printed upside down, that is a 45 degree overhang.
+module corner_boss() {
+    bx = base_w/2 - 9;  by = base_d/2 - 9;
+    intersection() {
+        rbox(base_w, base_d, base_h, corner_r);
+        hull() {
+            translate([bx, by, 0]) cylinder(d = 11, h = boss_h);
+            translate([bx - 3, by - 3, 0]) cube([12, 12, boss_h]);
+            translate([base_w/2 - wall/2 - 2, base_d/2 - wall/2 - 2, 0])
+                cylinder(r = 1, h = boss_h + boss_taper);
+        }
+    }
+}
+
 module base_shell() {
     difference() {
         union() {
@@ -125,16 +144,22 @@ module base_shell() {
                                              base_h - top_t, corner_r - wall);
             }
             // corner bosses for the floor screws
-            for (x = [-1, 1], y = [-1, 1])
-                translate([x * (base_w/2 - 9), y * (base_d/2 - 9), 0])
-                    cylinder(d = 11, h = 22);
-            // pan servo bridges: bars under the tab holes, legs out past the horn
+            for (x = [0, 1], y = [0, 1]) mirror([x, 0, 0]) mirror([0, y, 0]) corner_boss();
+            // pan servo bridges: bars under the tab holes, legs out past the horn.
+            // The gussets close most of the span, so the bars print without supports.
             for (hx = [s_center_x - s_hole_L/2, s_center_x + s_hole_L/2]) {
+                leg_h = base_h - top_t - s_tab_top_z;
                 translate([hx - 4, -24, s_tab_top_z]) cube([8, 48, 5]);
                 for (y = [-24, 18])
-                    translate([hx - 4, y, s_tab_top_z]) cube([8, 6, base_h - top_t - s_tab_top_z + eps]);
+                    translate([hx - 4, y, s_tab_top_z]) cube([8, 6, leg_h + eps]);
+                for (s = [-1, 1]) translate([hx - 4, 0, s_tab_top_z]) rotate([90, 0, 90])
+                    linear_extrude(8) polygon([[s * 18, leg_h + eps], [s * 18, 5 - eps],
+                                               [s * (18 - (leg_h - 5)), 5 - eps]]);
             }
         }
+        // flat on the rear right boss so the corner of the Arduino clears it
+        translate([base_w/2 - wall - 20, base_d/2 - wall - 20, -eps])
+            cube([20, uno_origin[1] + uno_w + 0.8 - (base_d/2 - wall - 20), boss_h + boss_taper + 1]);
         // floor screw pilots
         for (x = [-1, 1], y = [-1, 1])
             translate([x * (base_w/2 - 9), y * (base_d/2 - 9), -eps]) cylinder(d = s_pilot, h = 18);
@@ -207,7 +232,7 @@ module camera_cradle() {
             translate([-30, 0, 0]) cube([60, 14, 4]);
             // tilted shelf with back stop and front lip
             translate([0, 2, shelf_z]) rotate([cam_tilt, 0, 0]) {
-                translate([-cam_w/2 - 3, 0, -3]) cube([cam_w + 6, cam_d + 3, 3]);
+                translate([-cam_w/2 - 3, -2, -3]) cube([cam_w + 6, cam_d + 5, 3]);   // runs under the front lip
                 translate([-cam_w/2 - 3, cam_d + tol, 0]) cube([cam_w + 6, 3, cam_h * 0.6]);
                 translate([-cam_w/2 - 3, -2, 0]) cube([cam_w + 6, 2, 2.5]);
             }
@@ -322,16 +347,20 @@ module cradle() {
                 translate([s * (cr_w/2 - arm_t/2) - arm_t/2, -22, plat_z]) cube([arm_t, 44, cr_t]);
                 translate([s * (cr_w/2 - arm_t/2) - arm_t/2, 0, 0]) rotate([0, 90, 0]) cylinder(r = 15, h = arm_t);
             }
-            // jaw servo plate hanging under the front edge (YZ plane)
-            translate([10, -cr_d/2, plat_z - 36]) cube([4, 34, 36 + eps]);
-            translate([10, -cr_d/2, plat_z - 4]) cube([14, 34, 4 + eps]);
+            // jaw servo plate hanging under the front edge (YZ plane). It runs 3 mm
+            // past the front edge so the front screw hole has a wall around it.
+            translate([10, -cr_d/2 - 3, plat_z - 36]) cube([4, 39, 36 + eps]);
+            translate([10, -cr_d/2 - 3, plat_z - eps]) cube([4, 3 + eps, cr_t + eps]);
+            translate([10, -cr_d/2, plat_z - 4]) cube([9, 36, 4 + eps]);   // stops short of the balance slot
         }
         // balance slots for screws into the skull base
         for (x = [-22, 22]) translate([x, -24, plat_z - 1]) rotate(90) slot(48, 4.2, cr_t + 2);
         // big cable hole under the foramen magnum
         translate([0, 6, plat_z - 1]) cylinder(d = 30, h = cr_t + 2);
-        // horn hub on the +X arm, bolt hole on the -X arm
-        translate([cr_w/2 - arm_t - 1, 0, 0]) rotate([0, 90, 0]) { horn_slots(arm_t + 2); cylinder(d = 9, h = arm_t + 2); }
+        // horn hub on the +X arm, bolt hole on the -X arm. The arm prints standing up,
+        // so the slots stop short of the center hole: a ring is left to carry the
+        // wedges between them, which would otherwise start in mid-air.
+        translate([cr_w/2 - arm_t - 1, 0, 0]) rotate([0, 90, 0]) { horn_slots(arm_t + 2, len = 5, r0 = 6.5); cylinder(d = 7, h = arm_t + 2); }
         translate([-cr_w/2 - 1, 0, 0]) rotate([0, 90, 0]) cylinder(d = pivot_bolt, h = arm_t + 2);
         // MG90S in the jaw plate: shaft forward and low
         translate([9, -cr_d/2 + 5 + j_L/2, plat_z - 22]) {   // body center; shaft at the front end
